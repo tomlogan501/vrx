@@ -16,10 +16,10 @@
 */
 
 #include <functional>
-#include "gazebo/common/Assert.hh"
-#include "gazebo/common/Events.hh"
-//#include "plugins/BuoyancyPlugin.hh"
+#include <gazebo/common/Assert.hh>
+#include <gazebo/common/Events.hh>
 #include <robotx_gazebo/buoyancy_gazebo_plugin.hh>
+#include <robotx_gazebo/ModelPluginThrottled.hh>
 
 using namespace gazebo;
 
@@ -38,6 +38,8 @@ BuoyancyPlugin::BuoyancyPlugin()
 /////////////////////////////////////////////////
 void BuoyancyPlugin::Load(physics::ModelPtr _model, sdf::ElementPtr _sdf)
 {
+  ModelPluginThrottled::Load(_model, _sdf);
+
   GZ_ASSERT(_model != NULL, "Received NULL model pointer");
   this->model = _model;
   physics::WorldPtr world = _model->GetWorld();
@@ -238,7 +240,8 @@ void BuoyancyPlugin::Init()
 /////////////////////////////////////////////////
 void BuoyancyPlugin::OnUpdate()
 {
-
+  if (!this->UpdateThrottling())
+    return;
 
   //  for (auto link : this->model->GetLinks()){
   //physics::Link_V links = this->model->GetLinks();

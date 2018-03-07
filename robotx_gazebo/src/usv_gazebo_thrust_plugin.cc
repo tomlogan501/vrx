@@ -62,6 +62,9 @@ double UsvThrust::getSdfParamDouble(sdf::ElementPtr sdfPtr, const std::string &p
 void UsvThrust::Load(physics::ModelPtr _parent, sdf::ElementPtr _sdf )
 {
   ROS_INFO("Loading usv_gazebo_thrust_plugin");
+
+  ModelPluginThrottled::Load(_parent, _sdf);
+
   model_ = _parent;
   world_ = model_->GetWorld();
 
@@ -201,6 +204,9 @@ double UsvThrust::glfThrustCmd(double cmd)
 
 void UsvThrust::UpdateChild()
 {
+  if (!this->UpdateThrottling())
+    return;
+
   common::Time time_now = this->world_->GetSimTime();
   prev_update_time_ = time_now;
 

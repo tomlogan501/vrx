@@ -21,7 +21,7 @@
       </inertial>
       <collision name="buoyc">
         <geometry>
-	  <mesh><uri>model://surmark950400/mesh/surmark950400.dae</uri></mesh>
+	        <mesh><uri>model://surmark950400/mesh/surmark950400.dae</uri></mesh>
           <cylinder>
             <radius>0.25</radius>
             <length>1.0</length>
@@ -30,7 +30,7 @@
       </collision>
       <visual name="buoyv">
         <geometry>
-	<mesh><uri>model://surmark950400/mesh/surmark950400.dae</uri></mesh>
+	        <mesh><uri>model://surmark950400/mesh/surmark950400.dae</uri></mesh>
         </geometry>
         <material>
           <script>
@@ -41,6 +41,8 @@
       </visual>
     </link>
     <plugin name="BuoyancyPlugin" filename="libbuoyancy_gazebo_plugin.so">
+      <!-- Uncomment to set a custom update rate -->
+      <!-- <update_rate>1</update_rate> -->
       <fluid_density>1000</fluid_density>
       <fluid_level>0.0</fluid_level>
       <fluid_drag>5.0</fluid_drag>

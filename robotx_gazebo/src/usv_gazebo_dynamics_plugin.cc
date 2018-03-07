@@ -66,9 +66,10 @@ double UsvPlugin::getSdfParamDouble(sdf::ElementPtr sdfPtr, const std::string &p
   return val;
 }
 
-void UsvPlugin::Load(physics::ModelPtr _parent, sdf::ElementPtr _sdf )
+void UsvPlugin::Load(physics::ModelPtr _parent, sdf::ElementPtr _sdf)
 {
   ROS_INFO("Loading usv_gazebo_dynamics_plugin");
+  ModelPluginThrottled::Load(_parent, _sdf);
   model_ = _parent;
   world_ = model_->GetWorld();
 
@@ -250,6 +251,9 @@ void UsvPlugin::Load(physics::ModelPtr _parent, sdf::ElementPtr _sdf )
 
 void UsvPlugin::UpdateChild()
 {
+  if (!this->UpdateThrottling())
+    return;
+
   common::Time time_now = this->world_->GetSimTime();
   //common::Time step_time = time_now - prev_update_time_;
   double dt = (time_now - prev_update_time_).Double();

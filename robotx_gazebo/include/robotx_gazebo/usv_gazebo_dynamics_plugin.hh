@@ -49,9 +49,11 @@ along with Foobar.  If not, see <http://www.gnu.org/licenses/>.
 #include <ros/callback_queue.h>
 #include <ros/advertise_options.h>
 
+#include <robotx_gazebo/ModelPluginThrottled.hh>
+
 namespace gazebo
 {
-  class UsvPlugin : public ModelPlugin
+  class UsvPlugin : public ModelPluginThrottled
   {
   public:
     UsvPlugin();

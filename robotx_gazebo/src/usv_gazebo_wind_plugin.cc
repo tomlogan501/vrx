@@ -67,6 +67,9 @@ double UsvWindPlugin::getSdfParamDouble(sdf::ElementPtr sdfPtr, const std::strin
 void UsvWindPlugin::Load(physics::ModelPtr _parent, sdf::ElementPtr _sdf )
 {
   ROS_INFO("Loading usv_gazebo_wind_plugin");
+
+  ModelPluginThrottled::Load(_parent, _sdf);
+
   model_ = _parent;
   world_ = model_->GetWorld();
 
@@ -144,6 +147,9 @@ void UsvWindPlugin::Load(physics::ModelPtr _parent, sdf::ElementPtr _sdf )
 }
 void UsvWindPlugin::UpdateChild()
 {
+  if (!this->UpdateThrottling())
+    return;
+
   // Wind
   // Transform wind from world coordinates to body coordinates
   math::Vector3 relative_wind = link_->GetWorldPose().rot.GetInverse().RotateVector(param_wind_velocity_vector_);

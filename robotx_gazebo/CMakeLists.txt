@@ -75,6 +75,7 @@ link_directories(
 
 ## Declare a C++ library
 add_library(buoyancy_gazebo_plugin
+  src/ModelPluginThrottled.cc
   src/buoyancy_gazebo_plugin.cc
  )
 target_link_libraries(buoyancy_gazebo_plugin
@@ -90,6 +91,7 @@ install(TARGETS buoyancy_gazebo_plugin
 
 ## Declare a C++ library
 add_library(usv_gazebo_dynamics_plugin
+  src/ModelPluginThrottled.cc
   src/usv_gazebo_dynamics_plugin.cc
 )
 target_link_libraries(usv_gazebo_dynamics_plugin
@@ -105,6 +107,7 @@ install(TARGETS usv_gazebo_dynamics_plugin
 
 ## Declare a C++ library
 add_library(usv_gazebo_thrust_plugin
+  src/ModelPluginThrottled.cc
   src/usv_gazebo_thrust_plugin.cc
 )
 target_link_libraries(usv_gazebo_thrust_plugin
@@ -120,6 +123,7 @@ install(TARGETS usv_gazebo_thrust_plugin
 
 ## Declare a C++ library
 add_library(usv_gazebo_wind_plugin
+  src/ModelPluginThrottled.cc
   src/usv_gazebo_wind_plugin.cc
 )
 target_link_libraries(usv_gazebo_wind_plugin

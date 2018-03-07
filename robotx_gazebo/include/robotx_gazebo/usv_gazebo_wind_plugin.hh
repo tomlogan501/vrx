@@ -42,9 +42,11 @@ along with this package.  If not, see <http://www.gnu.org/licenses/>.
 #include <ros/callback_queue.h>
 #include <ros/advertise_options.h>
 
+#include <robotx_gazebo/ModelPluginThrottled.hh>
+
 namespace gazebo
 {
-  class UsvWindPlugin : public ModelPlugin
+  class UsvWindPlugin : public ModelPluginThrottled
   {
   public:
     UsvWindPlugin();

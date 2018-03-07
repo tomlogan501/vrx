@@ -18,13 +18,14 @@
 #ifndef GAZEBO_PLUGINS_BUOYANCYPLUGIN_HH_
 #define GAZEBO_PLUGINS_BUOYANCYPLUGIN_HH_
 
+#include <limits>
 #include <map>
-//#include <ignition/math/Vector3.hh>
 
 #include <gazebo/common/common.hh>
-#include "gazebo/common/Event.hh"
-#include "gazebo/common/Plugin.hh"
-#include "gazebo/physics/physics.hh"
+#include <gazebo/common/Event.hh>
+#include <gazebo/common/Plugin.hh>
+#include <gazebo/physics/physics.hh>
+#include <robotx_gazebo/ModelPluginThrottled.hh>
 
 namespace gazebo
 {
@@ -32,18 +33,19 @@ namespace gazebo
   class VolumeProperties
   {
     /// \brief Default constructor.
-  public: VolumeProperties() : area(0), height(0) {}
-    
+    public: VolumeProperties() : area(0), height(0) {}
+
     /// \brief Center of volume in the link frame.
-    //public: ignition::math::Vector3d cov;
-    //public: math::Vector3 cov;
-  public: math::Vector3 cov;
+    public: math::Vector3 cov;
+
     /// \brief Volume of this link.
-    //public: double volume;
+    // public: double volume;
+
     /// \brief Horizontal area of this link
-  public: double area;
+    public: double area;
+
     /// \brief Vertical height for this link
-  public: double height;
+    public: double height;
   };
 
   /// \brief A plugin that simulates buoyancy of an object immersed in fluid.
@@ -64,7 +66,7 @@ namespace gazebo
   /// computation will not be accurate if the object is not composed of simple
   /// collision shapes.
   //  class GAZEBO_VISIBLE BuoyancyPlugin : public ModelPlugin
-  class BuoyancyPlugin : public ModelPlugin
+  class BuoyancyPlugin : public ModelPluginThrottled
   {
     /// \brief Constructor.
     public: BuoyancyPlugin();
@@ -92,20 +94,19 @@ namespace gazebo
     /// kg/m^3. Defaults to 1000, the fluid density of water.
     protected: double fluidDensity;
 
-    // \brief The height of the fluid/air interface [m].  Defaults to 0
-  protected: double fluidLevel;
+    /// \brief The height of the fluid/air interface [m].  Defaults to 0
+    protected: double fluidLevel;
 
-    // \brief Quadratic drag generally applied to Z velocity
-  protected: double fluidDrag;
-    
+    /// \brief Quadratic drag generally applied to Z velocity
+    protected: double fluidDrag;
 
     /// \brief Map of <link ID, point> pairs mapping link IDs to the CoV (center
     /// of volume) and volume of the link.
     protected: std::map<int, VolumeProperties> volPropsMap;
-    
+
     // \brief Vector of links in the model for which we will apply buoyancy
     // forces.
-  protected: physics::Link_V buoyLinks;
+    protected: physics::Link_V buoyLinks;
   };
 }
 
