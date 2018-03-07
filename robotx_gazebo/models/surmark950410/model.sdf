@@ -21,7 +21,7 @@
       </inertial>
       <collision name="buoyc">
         <geometry>
-	        <mesh><uri>model://surmark950410/mesh/surmark950410.dae</uri></mesh>
+          <mesh><uri>model://surmark950410/mesh/surmark950410.dae</uri></mesh>
           <cylinder>
             <radius>0.25</radius>
             <length>1.0</length>
@@ -30,7 +30,7 @@
       </collision>
       <visual name="buoyv">
         <geometry>
-	        <mesh><uri>model://surmark950410/mesh/surmark950410.dae</uri></mesh>
+          <mesh><uri>model://surmark950410/mesh/surmark950410.dae</uri></mesh>
         </geometry>
         <material>
           <script>
