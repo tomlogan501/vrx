@@ -245,14 +245,41 @@ void UsvPlugin::Load(physics::ModelPtr _parent, sdf::ElementPtr _sdf)
   }
   // Precalculate this to save some time.
   buoy_frac_ = (param_boat_area_/(NN*NN))*GRAVITY*water_density_;
-
+  // Setup arrays for buoyancy force
+  for (int ii=0; ii<NN; ii++){
+    for (int jj=0; jj<=NN; jj++){
+      buoy_forces_vec_.push_back(math::Vector3(0,0,0));
+      buoy_locs_vec_.push_back(math::Vector3(0,0,0));
+    }
+  }
 }
 
+void UsvPlugin::ApplyForces()
+{
+  // Add dynamic forces/torques to link at CG
+  link_->AddRelativeForce(relative_force_);
+  link_->AddRelativeTorque(relative_torque_);
+  // Add buoyany
+  int NN = 2; // must be factor of 2! - only 2 for now!!
+    
+  for (int ii=0; ii<NN; ii++){
+    for (int jj=0; jj<NN; jj++){
+      link_->AddForceAtRelativePosition(buoy_forces_vec_[2*ii+jj],
+					buoy_locs_vec_[2*ii+jj]);
+
+      ROS_DEBUG_STREAM("apply buoyforce "<< 2*ii+jj << ": " <<
+		      buoy_forces_vec_[2*ii+jj]);
+
+    }
+  }
+}
 
 void UsvPlugin::UpdateChild()
 {
-  if (!this->UpdateThrottling())
+  if (!this->UpdateThrottling()){
+    this->ApplyForces();
     return;
+  }
 
   common::Time time_now = this->world_->GetSimTime();
   //common::Time step_time = time_now - prev_update_time_;
@@ -323,9 +350,11 @@ void UsvPlugin::UpdateChild()
   ROS_DEBUG_STREAM_THROTTLE(1.0,"forceSum :\n" << forceSum);
 
   // Add dynamic forces/torques to link at CG
-  link_->AddRelativeForce(math::Vector3(forceSum(0),forceSum(1),forceSum(2)));
-  link_->AddRelativeTorque(math::Vector3(forceSum(3),forceSum(4),forceSum(5)));
-
+  //  link_->AddRelativeForce(math::Vector3(forceSum(0),forceSum(1),forceSum(2)));
+  //  link_->AddRelativeTorque(math::Vector3(forceSum(3),forceSum(4),forceSum(5)));
+  relative_force_ = math::Vector3(forceSum(0),forceSum(1),forceSum(2));
+  relative_torque_ = math::Vector3(forceSum(3),forceSum(4),forceSum(5));
+    
   // Distribute upward buoyancy force
 
   float ddz, buoy_force;
@@ -335,9 +364,12 @@ void UsvPlugin::UpdateChild()
   tf2::Vector3 bpnt_w(0,0,0);   // in world coordinates
 
   // Loop over boat grid points
+  int ii = 0;
+  int jj = 0;
   //for (std::list<int>::iterator ii=Ilist.begin();ii != Ilist.end(); ii++){
   for (std::vector<int>::iterator it=II_.begin(); it != II_.end(); ++it){
     bpnt.setX((*it)*dx_);  // grid point in boat fram
+    jj = 0;
     for (std::vector<int>::iterator jt=II_.begin(); jt != II_.end(); ++jt){
       //for (std::list<int>::iterator jj=Jlist.begin(); jj != Jlist.end(); jj++)
       bpnt.setY((*jt)*dy_);
@@ -370,14 +402,21 @@ void UsvPlugin::UpdateChild()
 
       // Buoyancy force at grid point
       buoy_force = (((water_level_+dz)-(ddz))*(buoy_frac_));
-      ROS_DEBUG_STREAM("buoy_force: " << buoy_force);
       // Apply force at grid point
       // From web, Appears that position is in the link frame
       // and force is in world frame
-      link_->AddForceAtRelativePosition(math::Vector3(0,0,buoy_force),
-					math::Vector3(bpnt.x(),bpnt.y(),bpnt.z()));
+      //link_->AddForceAtRelativePosition(math::Vector3(0,0,buoy_force),
+      //				math::Vector3(bpnt.x(),bpnt.y(),bpnt.z()));
+      buoy_forces_vec_[2*ii+jj]=math::Vector3(0,0,buoy_force);
+      buoy_locs_vec_[2*ii+jj]=math::Vector3(bpnt.x(),bpnt.y(),bpnt.z());
+
+      ROS_DEBUG_STREAM("calc buoyforce "<< 2*ii+jj << ": " <<
+		      buoy_forces_vec_[2*ii+jj]);
+      jj++;
     }
+    ii++;
   }
+  this->ApplyForces();
 }
 
 void UsvPlugin::spin()

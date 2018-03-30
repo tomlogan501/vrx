@@ -5,7 +5,8 @@
     <gazebo >
       <plugin name="usv_dynamics_${name}" filename="libusv_gazebo_dynamics_plugin.so">
         <!-- Uncomment to set a custom update rate -->
-        <!--<update_rate>1</update_rate> -->
+        <update_rate>100</update_rate>
+	<update_decimate>10</update_decimate>
 
         <bodyName>base_link</bodyName>
         <waterLevel>0</waterLevel> <!-- Must be same as the ocean model!-->

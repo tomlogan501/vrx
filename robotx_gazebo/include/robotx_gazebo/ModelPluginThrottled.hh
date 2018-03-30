@@ -43,8 +43,10 @@ namespace gazebo
 
     /// \brief Update rate of the plugin (Hz).
     /// By default, the plugin will run in sync with the physics engine.
-    private: double updateRate = std::numeric_limits<double>::max();
-
+  private: double updateRate = std::numeric_limits<double>::max();
+  private: int updateDecimate = 1;
+  private: int updateCnt = 0;
+  
     /// \brief Last time the plugin was executed (used for throttling).
     private: gazebo::common::Time lastUpdateTime;
   };

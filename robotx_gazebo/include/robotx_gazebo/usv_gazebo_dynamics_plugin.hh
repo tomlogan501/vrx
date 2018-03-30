@@ -61,6 +61,8 @@ namespace gazebo
     /*! Loads the model in gets dynamic parameters from SDF. */
     virtual void Load(physics::ModelPtr _parent, sdf::ElementPtr _sdf);
   protected:
+    /*! Called each cycle */
+    virtual void ApplyForces();
     /*! Callback for Gazebo simulation engine */
     virtual void UpdateChild();
     virtual void FiniChild();
@@ -76,7 +78,12 @@ namespace gazebo
 
      */
     double getSdfParamDouble(sdf::ElementPtr sdfPtr,const std::string &param_name,double default_val);
-
+    /// Containers for persistent forces
+    math::Vector3 relative_force_;
+    math::Vector3 relative_torque_;
+    std::vector<math::Vector3> buoy_forces_vec_;
+    std::vector<math::Vector3> buoy_locs_vec_;
+    
     /// Parameters
     std::string node_namespace_;
     std::string link_name_;

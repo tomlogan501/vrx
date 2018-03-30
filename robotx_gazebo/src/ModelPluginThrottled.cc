@@ -30,11 +30,15 @@ void ModelPluginThrottled::Load(physics::ModelPtr /*_model*/,
 {
   if (_sdf->HasElement("update_rate"))
     this->updateRate = _sdf->Get<double>("update_rate");
+  if (_sdf->HasElement("update_decimate"))
+    this->updateDecimate = _sdf->Get<int>("update_decimate");
+     
 }
 
 /////////////////////////////////////////////////
 bool ModelPluginThrottled::UpdateThrottling()
 {
+  /*
   auto now = gazebo::physics::get_world()->GetSimTime();
   auto dt = (now - this->lastUpdateTime).Double();
 
@@ -51,4 +55,11 @@ bool ModelPluginThrottled::UpdateThrottling()
 
   this->lastUpdateTime = now;
   return true;
+  */
+  this->updateCnt++;
+  if (this->updateCnt >= this->updateDecimate){
+    this->updateCnt = 0;
+    return true;
+  }
+  return false;
 }
