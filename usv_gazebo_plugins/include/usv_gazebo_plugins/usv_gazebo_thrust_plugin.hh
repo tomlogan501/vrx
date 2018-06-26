@@ -33,7 +33,7 @@ along with this package.  If not, see <http://www.gnu.org/licenses/>.
 //#include <gazebo_plugins/gazebo_ros_utils.h>
 
 //ROS
-#include <robotx_gazebo/UsvDrive.h>
+#include <usv_gazebo_plugins/UsvDrive.h>
 #include <ros/ros.h>
 
 // Custom Callback Queue
@@ -58,7 +58,7 @@ namespace gazebo
       Callback for Drive commands
       \param msg usv_msgs UsvDrive message
     */
-    void OnCmdDrive( const robotx_gazebo::UsvDriveConstPtr &msg);
+    void OnCmdDrive( const usv_gazebo_plugins::UsvDriveConstPtr &msg);
 
     /*! ROS spin once */
     void spin();
@@ -82,6 +82,22 @@ namespace gazebo
 	       float v, float C, float M);
 
     double glfThrustCmd(double cmd);
+
+    /*! Parse the propeller name from SDF.
+      \param sdf The entire model SDF
+      \param sdf_name The SDF element to parse
+      \param propeller_joint The joint pointer to initialize
+    */
+    void ParsePropeller(const sdf::ElementPtr sdf,
+                        const std::string &sdf_name,
+                        physics::JointPtr &propeller_joint);
+
+    /*! Spin a propeller based on its input
+      \param propeller Pointer to the propeller joint to spin
+      \param input Last input received for this propeller
+    */
+    void SpinPropeller(const physics::JointPtr &propeller,
+                       const double input);
 
     /// Parameters
     std::string node_namespace_;
@@ -127,6 +143,10 @@ namespace gazebo
     double param_boat_length_;
     /*! Plugin Parameter: Z offset for applying forward thrust */
     double param_thrust_z_offset_;
+    /* Joint controlling the left propeller */
+    physics::JointPtr left_propeller_joint_;
+    /* Joint controlling the right propeller */
+    physics::JointPtr right_propeller_joint_;
     // Pointer to the update event connection
     event::ConnectionPtr updateConnection;
   };  // class UsvThrust

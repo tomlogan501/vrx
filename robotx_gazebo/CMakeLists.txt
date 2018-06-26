@@ -1,121 +1,31 @@
 cmake_minimum_required(VERSION 2.8.3)
 project(robotx_gazebo)
 
-## Find catkin macros and libraries
-## if COMPONENTS list like find_package(catkin REQUIRED COMPONENTS xyz)
-## is used, also find other catkin packages
 find_package(catkin REQUIRED COMPONENTS
-  cmake_modules
-  gazebo_plugins
-  gazebo_ros
-  geometry_msgs
-  message_generation
-  nav_msgs
-  roscpp
-  std_msgs
-  wamv_description
+  wamv_gazebo
   xacro
-)
-
-## Gazebo
-find_package(gazebo REQUIRED)
-
-## Eigen
-find_package(Eigen3 REQUIRED)
-
-# Visual Studio enables c++11 support by default
-if (NOT MSVC)
-  set(UNFILTERED_FLAGS "-std=c++11")
-endif()
-
-
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${GAZEBO_CXX_FLAGS} -std=c++11 -Wall -Wextra")
-
-########################
-## Message generation ##
-########################
-
-# Generate messages in the 'msg' folder
-add_message_files(
-  FILES
-  UsvDrive.msg
-)
-
-## Generate added messages and services with any dependencies listed here
-generate_messages(
-  DEPENDENCIES
-  geometry_msgs
-  nav_msgs
+  gazebo_dev
   std_msgs
 )
-
-###################################
-## catkin specific configuration ##
-###################################
 
 catkin_package(
   INCLUDE_DIRS include
-  CATKIN_DEPENDS roscpp message_runtime std_msgs geometry_msgs nav_msgs xacro
-  LIBRARIES
+  LIBRARIES gazebo_ros_color
+  CATKIN_DEPENDS wamv_gazebo xacro gazebo_dev std_msgs
 )
 
-###########
-## Build ##
-###########
+set(CMAKE_CXX_FLAGS "-std=c++11 ${CMAKE_CXX_FLAGS}")
 
-include_directories( include
-  ${catkin_INCLUDE_DIRS}
-  ${GAZEBO_INCLUDE_DIRS}
-  ${EIGEN3_INCLUDE_DIRS}
-)
-link_directories(
-  ${GAZEBO_LIBRARY_DIRS}
-  ${catkin_LIBRARY_DIRS}
-)
+include_directories(include ${catkin_INCLUDE_DIRS})
 
-## Declare a C++ library
-add_library(buoyancy_gazebo_plugin
-  src/buoyancy_gazebo_plugin.cc
- )
-target_link_libraries(buoyancy_gazebo_plugin
-  ${catkin_LIBRARIES}
-  ${GAZEBO_LIBRARIES}
-  ${Eigen_LIBRARIES}
-)
-install(TARGETS buoyancy_gazebo_plugin
-  ARCHIVE DESTINATION lib
-  LIBRARY DESTINATION lib
-  RUNTIME DESTINATION bin
-)
-
-## Declare a C++ library
-add_library(usv_gazebo_dynamics_plugin
-  src/usv_gazebo_dynamics_plugin.cc
-)
-target_link_libraries(usv_gazebo_dynamics_plugin
-  ${catkin_LIBRARIES}
-  ${GAZEBO_LIBRARIES}
-  ${Eigen_LIBRARIES}
-)
-install(TARGETS usv_gazebo_dynamics_plugin
-  ARCHIVE DESTINATION lib
-  LIBRARY DESTINATION lib
-  RUNTIME DESTINATION bin
-)
-
-## Declare a C++ library
-add_library(usv_gazebo_thrust_plugin
-  src/usv_gazebo_thrust_plugin.cc
-)
-target_link_libraries(usv_gazebo_thrust_plugin
-  ${catkin_LIBRARIES}
-  ${GAZEBO_LIBRARIES}
-  ${Eigen_LIBRARIES}
-)
-install(TARGETS usv_gazebo_thrust_plugin
-  ARCHIVE DESTINATION lib
-  LIBRARY DESTINATION lib
-  RUNTIME DESTINATION bin
+# Plugin for scan_the_code challenge animation
+add_library(gazebo_ros_color src/gazebo_ros_color.cc)
+target_link_libraries(gazebo_ros_color ${catkin_LIBRARIES})
+add_dependencies(gazebo_ros_color ${catkin_EXPORTED_TARGETS})
+install(TARGETS gazebo_ros_color
+  ARCHIVE DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
+  LIBRARY DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
+  RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
 )
 
 # Generate world files from xacro and install
@@ -126,34 +36,6 @@ foreach(f ${${PROJECT_NAME}_xacro_worlds})
   list(APPEND xacro_outputs ${XACRO_OUTPUT_FILE})
 endforeach(f)
 xacro_install(worlds ${xacro_outputs} DESTINATION worlds)
-
-# Generate urdf files from xacro and install
-file(GLOB ${PROJECT_NAME}_xacro_urdf RELATIVE ${CMAKE_CURRENT_SOURCE_DIR} urdf/*.urdf.xacro)
-unset(xacro_outputs)
-foreach(f ${${PROJECT_NAME}_xacro_urdf})
-  xacro_add_xacro_file(${f} INORDER)
-  list(APPEND xacro_outputs ${XACRO_OUTPUT_FILE})
-endforeach(f)
-xacro_install(urdf ${xacro_outputs} DESTINATION urdf)
-
-## Declare a C++ library
-add_library(usv_gazebo_wind_plugin
-  src/usv_gazebo_wind_plugin.cc
-)
-target_link_libraries(usv_gazebo_wind_plugin
-  ${catkin_LIBRARIES}
-  ${GAZEBO_LIBRARIES}
-  ${Eigen_LIBRARIES}
-)
-install(TARGETS usv_gazebo_wind_plugin
-  ARCHIVE DESTINATION lib
-  LIBRARY DESTINATION lib
-  RUNTIME DESTINATION bin
-)
-
-#############
-## Install ##
-#############
 
 # Install all the config files
 install(DIRECTORY config/
@@ -170,21 +52,3 @@ install(DIRECTORY models/
 # Install all the launch files
 install(DIRECTORY launch/
   DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION}/launch)
-
-# Configure the setup script
-#catkin_add_env_hooks(99_robotx_gazebo_setup
-#  DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/cmake
-#  SHELLS sh)
-
-#############
-## Testing ##
-#############
-
-## Add gtest based cpp test target and link libraries
-# catkin_add_gtest(${PROJECT_NAME}-test test/test_robotx_gazebo.cpp)
-# if(TARGET ${PROJECT_NAME}-test)
-#   target_link_libraries(${PROJECT_NAME}-test ${PROJECT_NAME})
-# endif()
-
-## Add folders to be run by python nosetests
-# catkin_add_nosetests(test)

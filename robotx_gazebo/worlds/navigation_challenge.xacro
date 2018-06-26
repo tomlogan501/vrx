@@ -1,9 +1,7 @@
-<?xml version="1.0" ?>
-<sdf version="1.4" xmlns:xacro="http://ros.org/wiki/xacro">
-  <!-- Import sandisland base world -->
-  <xacro:include filename="$(find robotx_gazebo)/worlds/sandisland.world.xacro" />
-
-  <world name="start_gate">
+<?xml version="1.0"?>
+<!-- Macro to insert the robotx "Demonstrate Navigation Control" challenge into the world -->
+<world xmlns:xacro="http://ros.org/wiki/xacro">
+  <xacro:macro name="navigation_challenge">
     <!-- Start -->
     <!-- Red naun -->
     <include>
@@ -31,5 +29,5 @@
       <pose> -40 30  2 0 0 0 </pose>
       <uri>model://surmark950400</uri>      
     </include>
-  </world>
-</sdf>
+  </xacro:macro>
+</world>
