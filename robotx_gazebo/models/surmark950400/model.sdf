@@ -9,14 +9,14 @@
       </velocity_decay>
       <inertial>
         <pose>0 0 -10 0 0 0</pose>
-        <mass>10</mass>
+        <mass>20.86</mass>
         <inertia>
-          <ixx>10</ixx>
+          <ixx>3.042</ixx>
           <ixy>0</ixy>
           <ixz>0</ixz>
-          <iyy>10</iyy>
+          <iyy>3.042</iyy>
           <iyz>0</iyz>
-          <izz>10</izz>
+          <izz>0.651875</izz>
         </inertia>
       </inertial>
       <collision name="buoyc">
