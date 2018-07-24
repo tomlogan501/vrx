@@ -2,6 +2,9 @@
 
 ### VMRC 0.X.X
 
+1. Add a dock block and a templated mechanism (erb) for creating docks.
+  * [Pull request 27](https://bitbucket.org/osrf/vmrc/pull-requests/27)
+
 1. Add colored totem buoys.
   * [Pull request 26](https://bitbucket.org/osrf/vmrc/pull-requests/26)
 
