@@ -4,6 +4,8 @@
     <pose>0 0 0 0 0 0</pose>
     <static>true</static>
     <link name="silink">
+
+      <!--  This block seems to make Gazebo hang on some systems
       <collision name="shore_front_left">
         <pose>160 180 -4.5 0 0 2.05</pose>
         <geometry>
@@ -36,6 +38,18 @@
           </box>
         </geometry>
       </collision>
+      -->
+
+      <collision name="sicoll">
+	<geometry>
+	  <heightmap>
+	    <uri>file://sandisland/heightmap.png</uri>
+	    <size>469 469 10</size>
+	    <pos>0 0 -9</pos>
+	  </heightmap>
+	</geometry>
+      </collision>	
+      
       <visual name="si_is">
         <geometry>
           <heightmap>
