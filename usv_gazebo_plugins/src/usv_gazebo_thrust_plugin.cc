@@ -27,6 +27,11 @@ along with this package.  If not, see <http://www.gnu.org/licenses/>.
 
 using namespace gazebo;
 
+Thruster::Thruster()
+{
+}
+    
+
 //////////////////////////////////////////////////
 UsvThrust::UsvThrust()
 {
@@ -75,7 +80,65 @@ void UsvThrust::Load(physics::ModelPtr _parent, sdf::ElementPtr _sdf)
     nodeNamespace = _sdf->Get<std::string>("robotNamespace") + "/";
   }
 
+  ROS_INFO_STREAM("Loading thrusters from SDF");
+
+  // Temporary storage
   std::string linkName;
+
+  // For each thruster
+  int tcnt = 0;
+  if (_sdf->HasElement("thruster"))
+  {
+    sdf::ElementPtr thrusterSDF = _sdf->GetElement("thruster");
+    while (thrusterSDF){
+      // Instatiate
+      Thruster thruster;  
+
+      // Find link by name in SDF
+      if (thrusterSDF->HasElement("linkName")){
+	linkName = thrusterSDF->Get<std::string>("linkName");
+	thruster.link = this->model->GetLink(linkName);
+	if (thruster.link == nullptr){
+	  ROS_ERROR_STREAM("Could not find a link by the name <" << linkName <<"> in the model!");
+	}
+      }
+      else{
+	ROS_ERROR_STREAM("Please specify a link name for each thruster!");
+      }
+
+      // Parse individual thruster SDF parameters
+      thruster.maxCmd = this->SdfParamDouble(thrusterSDF, "maxCmd",1.0);
+      thruster.maxForceFwd = this->SdfParamDouble(thrusterSDF, "maxForceFwd",250.0);
+      thruster.maxForceRev = this->SdfParamDouble(thrusterSDF, "maxForceRev",-100.0);
+      if (thrusterSDF->HasElement("mappingType")){
+	thruster.mappingType = thrusterSDF->Get<int>("mappingType");
+	ROS_INFO_STREAM("Parameter found - setting <mappingType> to <" <<
+			thruster->paramMappingType << ">.");
+      }
+      else
+	{
+	  thruster.mappingType = 0;
+	  ROS_INFO_STREAM("Parameter <mappingType> not found: Using default value of "
+			  "<" << thruster->mappingType << ">.");
+	}
+      
+      
+      // Push to vector and increment
+      this->thrusters.push_back(thruster);
+      thrusterSDF = thrusterSDF->GetNextElement("thruster");
+      tcnt++;
+      
+    } // end of while
+  }
+  else
+  {
+    ROS_WARN_STREAM("No 'thruster' tags in description - how will you move?");
+  }
+  ROS_INFO_STREAM("Found " << tcnt << " thrusters");
+  
+      
+
+  
   if (_sdf->HasElement("bodyName"))
   {
     linkName = _sdf->Get<std::string>("bodyName");
