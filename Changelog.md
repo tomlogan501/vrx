@@ -7,6 +7,12 @@
 1. Update the mesh of the light buoy.
   * [Pull request 28](https://bitbucket.org/osrf/vmrc/pull-requests/28)
 
+1. Add placards and the ability to change shape and color.
+  * [Pull request 31](https://bitbucket.org/osrf/vmrc/pull-requests/31)
+
+1. Add a dock block and a templated mechanism (erb) for creating docks.
+  * [Pull request 27](https://bitbucket.org/osrf/vmrc/pull-requests/27)
+
 1. Add colored totem buoys.
   * [Pull request 26](https://bitbucket.org/osrf/vmrc/pull-requests/26)
 
@@ -47,4 +53,3 @@
 
 1. Add xacro macros and example for a WAM-V with sensors
   * [Pull request 12](https://bitbucket.org/osrf/vmrc/pull-requests/12)
-
