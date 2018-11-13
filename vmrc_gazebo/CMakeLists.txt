@@ -54,6 +54,16 @@ install(TARGETS symbol_controller
   RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
 )
 
+# Plugin for populating objects dynamically
+add_library(PopulationPlugin src/PopulationPlugin.cc)
+target_link_libraries(PopulationPlugin ${catkin_LIBRARIES})
+add_dependencies(PopulationPlugin ${catkin_EXPORTED_TARGETS})
+install(TARGETS PopulationPlugin
+  ARCHIVE DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
+  LIBRARY DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
+  RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
+)
+
 # Dock base files that need to be processed with erb
 set (dock_base_erb_files
   models/dock_2016_base/model.sdf.erb
