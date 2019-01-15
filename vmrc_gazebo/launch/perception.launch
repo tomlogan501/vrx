@@ -25,6 +25,9 @@
     <arg name="gui" value="$(arg gui)" />
   </include>
 
+  <!-- Set the name of the task -->
+  <param name="/vmrc/task" value="2019/perception" />
+
   <!-- Load robot model -->
   <param name="robot_description" textfile="$(find wamv_gazebo)/urdf/wamv_gazebo_t_locked.urdf"/>
 
