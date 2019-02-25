@@ -25,6 +25,11 @@ add_message_files(
   Task.msg
 )
 
+add_service_files(
+  FILES
+  ColorSequence.srv
+)
+
 generate_messages()
 
 catkin_package(
@@ -62,6 +67,7 @@ target_link_libraries(scoring_plugin ${catkin_LIBRARIES})
 add_dependencies(scoring_plugin
   ${catkin_EXPORTED_TARGETS}
   vrx_gazebo_generate_messages_cpp
+  vrx_gazebo_generate_services_cpp
 )
 install(TARGETS scoring_plugin
   ARCHIVE DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
@@ -79,7 +85,7 @@ install(TARGETS navigation_scoring_plugin
   ARCHIVE DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
   LIBRARY DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
   RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
-  )
+)
 
 # Plugin for scoring the station keeping challenge task.
 add_library(stationkeeping_scoring_plugin src/stationkeeping_scoring_plugin.cc)
@@ -88,6 +94,18 @@ target_link_libraries(stationkeeping_scoring_plugin
   scoring_plugin)
 add_dependencies(stationkeeping_scoring_plugin ${catkin_EXPORTED_TARGETS})
 install(TARGETS stationkeeping_scoring_plugin
+  ARCHIVE DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
+  LIBRARY DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
+  RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
+)
+
+# Plugin for scoring the scan and dock task.
+add_library(scan_dock_scoring_plugin src/scan_dock_scoring_plugin.cc)
+target_link_libraries(scan_dock_scoring_plugin
+  ${catkin_LIBRARIES}
+  scoring_plugin)
+add_dependencies(scan_dock_scoring_plugin ${catkin_EXPORTED_TARGETS})
+install(TARGETS scan_dock_scoring_plugin
   ARCHIVE DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
   LIBRARY DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
   RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
