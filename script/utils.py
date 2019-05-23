@@ -1,0 +1,81 @@
+import os
+import yaml
+def macro_block_gen(avalible, requested, target, boiler_plate, num_test, param_test):
+    xacro_file=open(target, 'wb')
+    xacro_file.write(boiler_plate)
+
+    avalible_macros = get_macros(avalible)
+
+    s = open(requested,'r')
+    requested_macros = yaml.load(s)
+
+    for key, objects in requested_macros.items():
+        #device must be avalible
+        assert key in avalible_macros.keys(),"%s is not defined in %s"%(key, directory)
+        assert num_test(key, len(objects)), "%d %s's are not allowed"%(len(objects),key)
+        xacro_file.write('  <!-- === %s === -->\n'% (key))
+        for i in objects:
+            full_params = avalible_macros[key].params.copy()
+            for j in i:
+                #all params in all objects must be correct
+                assert j in avalible_macros[key].params.keys(),"%s is not a parameter in %s"%(j,key)
+                full_params[j] = i[j]
+            assert param_test(key, full_params),"%s %s failed parameter test"%(key, i['name'])
+            xacro_file.write(macro_call_gen(key, i))
+    xacro_file.write('</xacro:macro>\n')
+    xacro_file.write('</robot>\n')
+    xacro_file.close()
+
+def macro_call_gen(name, params={}):
+    macro_call='  <xacro:%s '%name
+    for i in params:
+        macro_call+='%s="%s" '%(i, str(params[i]))
+    macro_call+='/>\n'
+    return macro_call
+
+def get_macros(directory):
+    xacro_files = [f for f in os.listdir(directory) if os.path.isfile(os.path.join(directory,f))]
+    macros = {}
+    for i in xacro_files:
+        macro = Macro(directory+str(i))
+        macros[macro.name] = macro
+    return macros
+
+class Macro:
+    def __init__(self, xacro_file_name):
+
+        xacro_file=open(xacro_file_name, 'r')
+        contents=xacro_file.read()
+        #remove comment blocks
+        while '<!--' in contents:
+            start=contents.find('<!--')
+            end = contents.find('-->')
+            contents = contents.replace(contents[start:end+3], '')
+        #get macro declaration
+        start = contents.find('<xacro:macro')
+        end = contents.find('>', start)
+        declaration = contents[start:end]
+        name_pose = declaration.find('name')
+        start = declaration.find('"', name_pose)
+        end = declaration.find('"',start+1)
+        name = declaration[start+1:end]
+
+        params_pose =declaration.find('params')
+        start = declaration.find('"', params_pose)
+        end = declaration.find('"',start+1)
+        params_raw =declaration[start+1:end].split(' ')
+        params={}
+        for i in params_raw:
+            key = i
+            if ':' in i:
+                key = i[:i.find(':')]
+            if '=' in i:
+                value = i[i.find('=')+1:]
+            else:
+                value = ''
+            params[key]=value
+        
+        
+        self.name = name
+        self.params = params
+
