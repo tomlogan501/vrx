@@ -17,6 +17,8 @@
 1. Added ground station tents, tables and antenna:
     * [Pull request 96](https://bitbucket.org/osrf/vrx/pull-requests/96)
 
+1. Add batteries to WAM-V:
+    * [Pull request 95](https://bitbucket.org/osrf/vrx/pull-requests/95)
 ### VRX 1.0.1
 
 1. Refactor Docker layout:
