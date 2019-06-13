@@ -21,6 +21,8 @@ along with this package.  If not, see <http://www.gnu.org/licenses/>.
 
 */
 
+#include <boost/algorithm/clamp.hpp>
+#include <cmath>
 #include <ros/time.h>
 
 #include <functional>
@@ -34,14 +36,19 @@ Thruster::Thruster(UsvThrust *_parent)
 {
   // Set some defaults
   this->cmdTopic = "thruster_default_cmdTopic";
+  this->angleTopic = "thruster_default_angleTopic";
   this->maxCmd = 1.0;
   this->maxForceFwd = 100.0;
   this->maxForceRev = -100.0;
+  this->maxAngle = M_PI / 2;
   this->mappingType = 0;
   this->plugin = _parent;
+  this->engineJointPID.Init(5555, 0.0, 350);
 
   // Initialize some things
   this->currCmd = 0.0;
+  this->desiredAngle = 0.0;
+
   #if GAZEBO_MAJOR_VERSION >= 8
     this->lastCmdTime = this->plugin->world->SimTime();
   #else
@@ -61,6 +68,15 @@ void Thruster::OnThrustCmd(const std_msgs::Float32::ConstPtr &_msg)
     this->lastCmdTime = this->plugin->world->GetSimTime();
   #endif
   this->currCmd = _msg->data;
+}
+
+//////////////////////////////////////////////////
+void Thruster::OnThrustAngle(const std_msgs::Float32::ConstPtr &_msg)
+{
+  // When we get a new thrust angle!
+  ROS_DEBUG_STREAM("New thrust angle! " << _msg->data);
+  std::lock_guard<std::mutex> lock(this->plugin->mutex);
+  this->desiredAngle = boost::algorithm::clamp(_msg->data, -this->maxAngle, this->maxAngle);
 }
 
 //////////////////////////////////////////////////
@@ -153,12 +169,37 @@ void UsvThrust::Load(physics::ModelPtr _parent, sdf::ElementPtr _sdf)
           << thrusterCounter);
       }
 
+      // Parse out engine joint name
+      if (thrusterSDF->HasElement("engineJointName"))
+      {
+        std::string engineName =
+          thrusterSDF->GetElement("engineJointName")->Get<std::string>();
+        thruster.engineJoint = this->model->GetJoint(engineName);
+        if (thruster.engineJoint == nullptr)
+        {
+          ROS_WARN_STREAM("Could not find a engine joint by the name of <" <<
+            engineName << "> in the model!");
+        }
+        else
+        {
+          ROS_DEBUG_STREAM("Engine joint <" << engineName <<
+            "> added to thruster");
+        }
+      }
+      else
+      {
+        ROS_WARN_STREAM("No engineJointName SDF parameter for thruster #"
+          << thrusterCounter);
+      }
+
       // Parse individual thruster SDF parameters
       thruster.maxCmd = this->SdfParamDouble(thrusterSDF, "maxCmd", 1.0);
       thruster.maxForceFwd =
         this->SdfParamDouble(thrusterSDF, "maxForceFwd", 250.0);
       thruster.maxForceRev =
         this->SdfParamDouble(thrusterSDF, "maxForceRev", -100.0);
+      thruster.maxAngle = this->SdfParamDouble(thrusterSDF, "maxAngle", M_PI / 2);
+
       if (thrusterSDF->HasElement("mappingType"))
       {
         thruster.mappingType = thrusterSDF->Get<int>("mappingType");
@@ -172,7 +213,7 @@ void UsvThrust::Load(physics::ModelPtr _parent, sdf::ElementPtr _sdf)
           "Using default value of <" << thruster.mappingType << ">.");
       }
 
-      // Parse for subscription topic
+      // Parse for cmd subscription topic
       if (thrusterSDF->HasElement("cmdTopic"))
       {
         thruster.cmdTopic = thrusterSDF->Get<std::string>("cmdTopic");
@@ -180,6 +221,17 @@ void UsvThrust::Load(physics::ModelPtr _parent, sdf::ElementPtr _sdf)
       else
       {
         ROS_ERROR_STREAM("Please specify a cmdTopic (for ROS subscription) "
+          "for each thruster!");
+      }
+
+      // Parse for angle subscription topic
+      if (thrusterSDF->HasElement("angleTopic"))
+      {
+        thruster.angleTopic = thrusterSDF->Get<std::string>("angleTopic");
+      }
+      else
+      {
+        ROS_ERROR_STREAM("Please specify a angleTopic (for ROS subscription) "
           "for each thruster!");
       }
 
@@ -216,6 +268,11 @@ void UsvThrust::Load(physics::ModelPtr _parent, sdf::ElementPtr _sdf)
     // Subscribe to commands for each thruster.
     this->thrusters[i].cmdSub = this->rosnode->subscribe(
       this->thrusters[i].cmdTopic, 1, &Thruster::OnThrustCmd,
+      &this->thrusters[i]);
+
+    // Subscribe to angles for each thruster.
+    this->thrusters[i].angleSub = this->rosnode->subscribe(
+      this->thrusters[i].angleTopic, 1, &Thruster::OnThrustAngle,
       &this->thrusters[i]);
   }
 
@@ -288,6 +345,20 @@ void UsvThrust::Update()
         this->thrusters[i].currCmd = 0.0;
         ROS_DEBUG_STREAM_THROTTLE(1.0, "[" << i << "] Cmd Timeout");
       }
+
+      // Adjust thruster engine joint angle with PID
+      common::Time stepTime = now - this->thrusters[i].lastAngleUpdateTime;
+      double desiredAngle = this->thrusters[i].desiredAngle;
+      #if GAZEBO_MAJOR_VERSION >= 8
+        double currAngle = this->thrusters[i].engineJoint->Position(0);
+      #else
+        double currAngle = this->thrusters[i].engineJoint->GetAngle(0).Radian();
+      #endif
+      double effort = this->thrusters[i].engineJointPID.Update(currAngle - desiredAngle, stepTime);
+      this->thrusters[i].engineJoint->SetForce(0, effort);
+
+      // Store last update time
+      this->thrusters[i].lastAngleUpdateTime = now;
 
       // Apply the thrust mapping
       ignition::math::Vector3d tforcev(0, 0, 0);
