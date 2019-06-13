@@ -53,6 +53,10 @@ namespace gazebo
     /// \param[in] _msg The thrust message to process.
     public: void OnThrustCmd(const std_msgs::Float32::ConstPtr &_msg);
 
+    /// \brief Callback for new thrust angle commands.
+    /// \param[in] _msg The thrust angle message to process.
+    public: void OnThrustAngle(const std_msgs::Float32::ConstPtr &_msg);
+
     /// \brief Maximum abs val of incoming command.
     public: double maxCmd;
 
@@ -61,6 +65,9 @@ namespace gazebo
 
     /// \brief Max reverse force in Newtons.
     public: double maxForceRev;
+
+    /// \brief Maximum abs val of angle
+    public: double maxAngle;
 
     /// \brief Link where thrust force is applied.
     public: physics::LinkPtr link;
@@ -74,14 +81,32 @@ namespace gazebo
     /// \brief Subscription to thruster commands.
     public: ros::Subscriber cmdSub;
 
+    /// \brief Topic name for incoming ROS thruster angle commands.
+    public: std::string angleTopic;
+
+    /// \brief Subscription to thruster commands.
+    public: ros::Subscriber angleSub;
+
     /// \brief Current, most recent command.
     public: double currCmd;
+
+    /// \brief Most recent desired angle.
+    public: double desiredAngle;
 
     /// \brief Last time received a command via ROS topic.
     public: common::Time lastCmdTime;
 
+    /// \brief Last time of update
+    public: common::Time lastAngleUpdateTime;
+
     /// \brief Joint controlling the propeller.
     public: physics::JointPtr propJoint;
+
+    /// \brief Joint controlling the engine.
+    public: physics::JointPtr engineJoint;
+
+    /// \brief PID for engine joint angle
+    public: common::PID engineJointPID;
 
     /// \brief Plugin parent pointer - for accessing world, etc.
     protected: UsvThrust *plugin;
@@ -101,6 +126,7 @@ namespace gazebo
   ///   Required elements:
   ///   <linkName>: Name of the link on which to apply thrust forces.
   ///   <propJointName>: The name of the propeller joint.
+  ///   <engineJointName>: The name of the engine joint.
   ///   <cmdTopic>: The ROS topic to control this thruster.
   ///   Optional eleents:
   ///   <mappingType>: Thruster mapping (0=linear; 1=GLF, nonlinear),
@@ -122,6 +148,7 @@ namespace gazebo
   ///      <thruster>
   ///        <linkName>left_propeller_link</linkName>
   ///        <propJointName>left_engine_propeller_joint</propJointName>
+  ///        <engineJointName>left_chasis_engine_joint</engineJointName>
   ///        <cmdTopic>left_thrust_cmd</cmdTopic>
   ///        <mappingType>1</mappingType>
   ///        <maxCmd>1.0</maxCmd>
@@ -131,6 +158,7 @@ namespace gazebo
   ///      <thruster>
   ///        <linkName>right_propeller_link</linkName>
   ///        <propJointName>right_engine_propeller_joint</propJointName>
+  ///        <engineJointName>right_chasis_engine_joint</engineJointName>
   ///        <cmdTopic>right_thrust_cmd</cmdTopic>
   ///        <mappingType>1</mappingType>
   ///        <maxCmd>1.0</maxCmd>
