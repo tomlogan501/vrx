@@ -7,6 +7,14 @@ if(NOT ERB_EXE_PATH)
   message(FATAL_ERROR "Could not find the `erb` tool.  Try `sudo apt-get install ruby`")
 endif()
 
+set (CMAKE_AUTOMOC ON)
+set (CMAKE_AUTOUIC ON)
+
+find_package (Qt5Widgets REQUIRED)
+find_package (Qt5Core REQUIRED)
+find_package (Protobuf REQUIRED)
+find_package (gazebo REQUIRED)
+
 find_package(catkin REQUIRED COMPONENTS
   message_generation
   wamv_gazebo
@@ -15,6 +23,7 @@ find_package(catkin REQUIRED COMPONENTS
   geographic_msgs
   std_msgs
   rospy
+  roscpp
 )
 
 ########################
@@ -43,7 +52,7 @@ catkin_package(
 
 set(CMAKE_CXX_FLAGS "-std=c++11 ${CMAKE_CXX_FLAGS}")
 
-include_directories(include ${catkin_INCLUDE_DIRS})
+include_directories(include ${catkin_INCLUDE_DIRS} ${Qt5Core_INCLUDE_DIRS})
 
 # Plugin for setting color of light buoy.
 add_library(light_buoy_plugin src/light_buoy_plugin.cc)
@@ -122,6 +131,29 @@ target_link_libraries(scan_dock_scoring_plugin
   scoring_plugin)
 add_dependencies(scan_dock_scoring_plugin ${catkin_EXPORTED_TARGETS})
 install(TARGETS scan_dock_scoring_plugin
+  ARCHIVE DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
+  LIBRARY DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
+  RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
+)
+
+# Plugin for Task Info GUI Overlay
+add_library(gui_task_widget
+	SHARED
+       	src/gui_task_widget.cc
+	include/vrx_gazebo/gui_task_widget.hh
+)
+
+message("gazebo libraries ${GAZEBO_LIBRARIES}    ====")
+
+target_link_libraries(gui_task_widget 
+  ${catkin_LIBRARIES}
+  ${GAZEBO_LIBRARIES}
+  ${Qt5Core_LIBRARIES}
+  ${Qt5Widgets_LIBRARIES}
+  ${PROTOBUF_LIBRARIES}
+)
+add_dependencies(gui_task_widget ${catkin_EXPORTED_TARGETS})
+install(TARGETS gui_task_widget
   ARCHIVE DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
   LIBRARY DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
   RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
