@@ -7,6 +7,14 @@ if(NOT ERB_EXE_PATH)
   message(FATAL_ERROR "Could not find the `erb` tool.  Try `sudo apt-get install ruby`")
 endif()
 
+set (CMAKE_AUTOMOC ON)
+set (CMAKE_AUTOUIC ON)
+
+find_package (Qt5Widgets REQUIRED)
+find_package (Qt5Core REQUIRED)
+find_package (Protobuf REQUIRED)
+find_package (gazebo REQUIRED)
+
 find_package(catkin REQUIRED COMPONENTS
   message_generation
   wamv_gazebo
@@ -15,6 +23,7 @@ find_package(catkin REQUIRED COMPONENTS
   geographic_msgs
   std_msgs
   rospy
+  roscpp
 )
 
 ########################
@@ -24,6 +33,7 @@ find_package(catkin REQUIRED COMPONENTS
 add_message_files(
   FILES
   Task.msg
+  Contact.msg
 )
 
 add_service_files(
@@ -34,7 +44,10 @@ add_service_files(
 # Python scripts setup
 catkin_python_setup()
 
-generate_messages()
+generate_messages(
+  DEPENDENCIES
+  std_msgs
+)
 
 catkin_package(
   INCLUDE_DIRS include
@@ -43,7 +56,9 @@ catkin_package(
 
 set(CMAKE_CXX_FLAGS "-std=c++11 ${CMAKE_CXX_FLAGS}")
 
-include_directories(include ${catkin_INCLUDE_DIRS})
+include_directories(include ${catkin_INCLUDE_DIRS} ${Qt5Core_INCLUDE_DIRS})
+
+add_definitions(${QT_DEFINITIONS})
 
 # Plugin for setting color of light buoy.
 add_library(light_buoy_plugin src/light_buoy_plugin.cc)
@@ -122,6 +137,26 @@ target_link_libraries(scan_dock_scoring_plugin
   scoring_plugin)
 add_dependencies(scan_dock_scoring_plugin ${catkin_EXPORTED_TARGETS})
 install(TARGETS scan_dock_scoring_plugin
+  ARCHIVE DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
+  LIBRARY DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
+  RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
+)
+
+# Plugin for Task Info GUI Overlay
+add_library(gui_task_widget SHARED ${headers_MOC}
+       	src/gui_task_widget.cc
+)
+
+message("gazebo libraries ${GAZEBO_LIBRARIES}    ====")
+
+target_link_libraries(gui_task_widget 
+  ${catkin_LIBRARIES}
+  ${GAZEBO_LIBRARIES}
+  ${PROTOBUF_LIBRARIES}
+)
+qt5_use_modules(gui_task_widget Widgets)
+add_dependencies(gui_task_widget ${catkin_EXPORTED_TARGETS})
+install(TARGETS gui_task_widget
   ARCHIVE DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
   LIBRARY DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
   RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
