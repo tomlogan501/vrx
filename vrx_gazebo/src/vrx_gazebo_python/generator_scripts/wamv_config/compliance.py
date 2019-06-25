@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-import os
 import rospy
 import numpy as np
 import yaml
@@ -23,18 +22,20 @@ class Sensor_Compliance:
         # with parameters = params, is this camera in compliance
         # check if the sensor is allowed
         params = params.copy()
+        if sensor_type not in self.default_parameters:
+            rospy.logerr('%s is not defined anywhere under %s' %
+                         (sensor_type, self.dir))
         assert sensor_type in self.default_parameters,\
             '%s is not defined anywhere under %s' % (sensor_type, self.dir)
         for i in params:
             if i not in self.numeric[sensor_type]['allowed_params']:
-                assert False, '%s parameter not permitted' % i
+                rospy.logerr('%s parameter specification of %s not permitted' %
+                             (i, sensor_type))
 
         # add the default params to params if not specified
         for i in self.default_parameters[sensor_type]:
             if i not in params:
                 params[i] = self.default_parameters[sensor_type][i]
-        # right now the ONLY compliance check we have is to make sure that
-        # the sensors are in at least one of the boxes
         if 'x' and 'y' and 'z' in params:
             xyz = np.array([float(params['x']),
                             float(params['y']),
@@ -42,7 +43,14 @@ class Sensor_Compliance:
             for box in self.boxes:
                 if box.fit(xyz):
                     return True
-            print '\n', sensor_type, params['name'], 'is out of bounds\n'
+            rospy.logerr('%s %s is out of bounds' %
+                         (sensor_type, params['name']))
+            rospy.logerr('%s %s is at xyz=(%s, %s, %s), %s' %
+                         (sensor_type, params['name'],
+                          xyz[0], xyz[1], xyz[2],
+                          'must fit in at least one of the following boxes:'))
+            for box in self.boxes:
+                rospy.logerr('  %s' % str(box))
             return False
         else:
             return True
@@ -50,15 +58,15 @@ class Sensor_Compliance:
     def number_compliance(self, sensor_type, n):
         # ie: are n wamv_cameras allowed?
         if n > self.numeric[sensor_type]['num']:
-            print '\n', 'maximum of', self.numeric[sensor_type]['num'], sensor_type, \
-                'allowed\n'
+            rospy.logerr('Too many %s requested' % sensor_type)
+            rospy.logerr('  maximum of %s %s allowed' %
+                         (self.numeric[sensor_type]['num'], sensor_type))
             return False
         return True
 
 
 class Thruster_Compliance:
     def __init__(self):
-
         # open sensor_compliance_visual.sdf and all the boxes defined => boxes
         self.boxes = find_boxes('thruster_compliance/visual.sdf')
         # look at all sensors in sensors directory and get the default params
@@ -70,15 +78,21 @@ class Thruster_Compliance:
         return
 
     def param_compliance(self, thruster_type, params={}):
-        # ie: given an instance of sensor_type = 'wamv_camera'
-        # with parameters = params, is this camera in compliance
-        # check if the sensor is allowed
+        # ie: given an instance of thruster_type = 'engine'
+        # with parameters = params, is this engine in compliance
+        # check if the thruster is allowed
         params = params.copy()
+        if thruster_type not in self.default_parameters:
+            rospy.logerr('%s is not defined anywhere under %s' %
+                         (thruster_type, self.dir))
         assert thruster_type in self.default_parameters,\
-            '%s is not defined anywhere under %s' % (thruster_type, self.dir)
+            '%s is not defined anywhere under %s' % \
+            (thruster_type, self.dir)
         for i in params:
             if i not in self.numeric[thruster_type]['allowed_params']:
-                assert False, '%s parameter not permitted' % i
+                rospy.logerr('%s parameter specification of not permitted' %
+                             (i, thruster_type))
+                assert False
 
         # add the default params to params if not specified
         for i in self.default_parameters[thruster_type]:
@@ -86,18 +100,27 @@ class Thruster_Compliance:
                 params[i] = self.default_parameters[thruster_type][i]
         # right now the ONLY compliance check we have is to make sure that
         # the sensors are in at least one of the boxes
-        xyz = np.array([float(j) for j in [i for i in params['position'].split(' ')
-                        if i != '']])
+        xyz = np.array([float(j) for j in [i for i in
+                                           params['position'].split(' ')
+                                           if i != '']])
         for box in self.boxes:
             if box.fit(xyz):
                 return True
-        print '\n', thruster_type, params['prefix'], 'is out of bounds\n'
+        rospy.logerr('%s %s is out of bounds' %
+                     (thruster_type, params['prefix']))
+        rospy.logerr('%s %s is at xyz=(%s, %s, %s), %s' %
+                     (thruster_type, params['prefix'],
+                      xyz[0], xyz[1], xyz[2],
+                      'it must fit in at least one of the following boxes:'))
+        for box in self.boxes:
+            rospy.logerr('  %s' % str(box))
         return False
 
     def number_compliance(self, thruster_type, n):
         if n > self.numeric[thruster_type]['num']:
-            print '\n', 'maximum of', self.numeric[thruster_type]['num'], thruster_type, \
-                'allowed\n'
+            rospy.logerr('Too many %s requested' % thruster_type)
+            rospy.logerr('  maximum of %s %s allowed' %
+                         (self.numeric[thruster_type]['num'], thruster_type))
             return False
         return True
 
@@ -116,6 +139,15 @@ class Box:
             if abs(i) > self.size[idx]/2:
                 return False
         return True
+
+    def __str__(self):
+        return '<Box x:[%s, %s] y:[%s,%s] z:[%s,%s]>' % \
+                ((self.pose[0] + self.size[0]/2),
+                 (self.pose[0] - self.size[0]/2),
+                 (self.pose[1] + self.size[1]/2),
+                 (self.pose[1] - self.size[1]/2),
+                 (self.pose[2] + self.size[2]/2),
+                 (self.pose[2] - self.size[2]/2))
 
 
 def find_boxes(sdf):
