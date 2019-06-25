@@ -19,24 +19,106 @@
 #include <string>
 #include <gazebo/common/Assert.hh>
 #include <gazebo/common/Events.hh>
-#include <ignition/math/Pose3.hh>
 #include "usv_gazebo_plugins/buoyancy_gazebo_plugin.hh"
 
 using namespace gazebo;
+using namespace gazebo::buoyancy;
+using namespace ::buoyancy;
+
+//////////////////////////////////////////////////
+BuoyancyObject::BuoyancyObject()
+  : linkId(-1),
+    linkName(""),
+    pose(0, 0, 0, 0, 0, 0),
+    mass(0.0),
+    shape(nullptr)
+{
+}
+
+///////////////////////////////////////////////////
+BuoyancyObject::BuoyancyObject(BuoyancyObject &&obj) noexcept
+  : linkId(obj.linkId),
+    linkName(obj.linkName),
+    pose(obj.pose),
+    mass(obj.mass),
+    shape(std::move(obj.shape))
+{
+}
+
+///////////////////////////////////////////////////
+void BuoyancyObject::load(const physics::ModelPtr model,
+    const sdf::ElementPtr elem)
+{
+  // parse link
+  if (elem->HasElement("link_name"))
+  {
+    linkName = elem->GetElement("link_name")->Get<std::string>();
+    physics::LinkPtr link = model->GetLink(linkName);
+    if (!link)
+    {
+      throw ParseException("link_name", "invalid link name");
+    }
+    linkId = link->GetId();
+  }
+  else
+  {
+    throw ParseException("link_name", "missing element");
+  }
+
+  // parse pose (optional)
+  if (elem->HasElement("pose"))
+  {
+    pose = elem->GetElement("pose")->Get<ignition::math::Pose3d>();
+  }
+
+  // parse geometry
+  if (elem->HasElement("geometry"))
+  {
+    sdf::ElementPtr geometry = elem->GetElement("geometry");
+    try
+    {
+      shape = std::move(ShapeVolume::makeShape(geometry));
+    }
+    catch (...)
+    {
+      throw;
+    }
+  }
+  else
+  {
+    throw ParseException("geometry", "missing element");
+  }
+}
+
+//////////////////////////////////////////////////
+std::string BuoyancyObject::disp() {
+  std::stringstream ss;
+  ss << "Buoyancy object\n"
+      << "\tlink: " << linkName << "[" << linkId << "]\n"
+      << "\tpose: " << pose << '\n'
+      << "\tgeometry " << shape->display() << '\n'
+      << "\tmass " << mass;
+  return ss.str();
+}
 
 /////////////////////////////////////////////////
 BuoyancyPlugin::BuoyancyPlugin()
-  : fluidDensity(999.1026),
+  : fluidDensity(997),
     fluidLevel(0.0),
-    fluidDrag(0.0)
+    linearDrag(0.0),
+    angularDrag(0.0)
 {
 }
 
 /////////////////////////////////////////////////
 void BuoyancyPlugin::Load(physics::ModelPtr _model, sdf::ElementPtr _sdf)
 {
-  GZ_ASSERT(_model != NULL, "Received NULL model pointer");
-  GZ_ASSERT(_sdf != NULL, "Received NULL SDF pointer");
+  GZ_ASSERT(_model != nullptr, "Received NULL model pointer");
+  GZ_ASSERT(_sdf != nullptr, "Received NULL SDF pointer");
+
+  model = _model;
+
+  _model->GetLink()->GetInertial()->Mass();
 
   if (_sdf->HasElement("fluid_density"))
   {
@@ -46,107 +128,41 @@ void BuoyancyPlugin::Load(physics::ModelPtr _model, sdf::ElementPtr _sdf)
   {
     this->fluidLevel = _sdf->Get<double>("fluid_level");
   }
-  if (_sdf->HasElement("fluid_drag"))
+  if (_sdf->HasElement("linear_drag"))
   {
-    this->fluidDrag = _sdf->Get<double>("fluid_drag");
+    this->linearDrag = _sdf->Get<double>("linear_drag");
+  }
+  if (_sdf->HasElement("angular_drag"))
+  {
+    this->angularDrag = _sdf->Get<double>("angular_drag");
   }
 
-  if (_sdf->HasElement("link"))
+  if (_sdf->HasElement("buoyancy"))
   {
-    gzmsg << "Found that SDF has at least one link element, looking at each "
-          << "link..." << std::endl;
-    int counter = 0;
-    for (sdf::ElementPtr linkElem = _sdf->GetElement("link"); linkElem;
-         linkElem = linkElem->GetNextElement("link"))
-    {
-      // Print each attribute for the link
-      gzmsg << "Looking for name attribute in link number " << counter
-            << ", which has " << linkElem->GetAttributeCount()
-            << " attributes" << std::endl;
-      counter++;
-      int id = -1;
-      std::string name = "";
-
-      if (linkElem->HasElement("name"))
+    gzmsg << "Found buoyancy element(s), looking at each element..." << std::endl;
+    for (sdf::ElementPtr buoyancyElem = _sdf->GetElement("buoyancy"); buoyancyElem;
+        buoyancyElem = buoyancyElem->GetNextElement("buoyancy")) {
+      try
       {
-        name = linkElem->GetElement("name")->Get<std::string>();
-        gzmsg << "Found link name in SDF [" << name << "]" << std::endl;
-        physics::LinkPtr link = _model->GetLink(name);
-        if (!link)
+        BuoyancyObject buoyObj = BuoyancyObject();
+        buoyObj.load(_model, buoyancyElem);
+
+        // add link to linkMap if it is not in the map
+        if (linkMap.find(buoyObj.linkId) == linkMap.end())
         {
-          gzwarn << "Specified link [" << name << "] not found." << std::endl;
-          continue;
+          linkMap[buoyObj.linkId] = _model->GetLink(buoyObj.linkName);
         }
-        id = link->GetId();
-        // Add this link to our list for applying buoy forces
-        this->buoyancyLinks.push_back(link);
-      }
-      else
-      {
-        gzwarn << "Missing 'name' element within link number ["
-               << counter - 1 << "] in SDF" << std::endl;
-        // Exit if we didn't set ID
-        continue;
-      }
 
-      if (this->volPropsMap.count(id) != 0)
-      {
-        gzwarn << "Properties for link [" << name << "] already set, skipping "
-               << "second property block" << std::endl;
-        continue;
-      }
+        // get mass
+        buoyObj.mass = linkMap[buoyObj.linkId]->GetInertial()->Mass();
 
-      if (linkElem->HasElement("center_of_volume"))
-      {
-        ignition::math::Vector3d cov = linkElem->GetElement("center_of_volume")
-            ->Get<ignition::math::Vector3d>();
-        this->volPropsMap[id].cov = cov;
+        // add buoyancy object to list and display stats
+        gzmsg << buoyObj.disp() << std::endl;
+        buoyancyObjects.push_back(std::move(buoyObj));
       }
-      else
+      catch (const std::exception& e)
       {
-        gzwarn << "Required element center_of_volume missing from link ["
-               << name << "] in BuoyancyPlugin SDF" << std::endl;
-        continue;
-      }
-
-      if (linkElem->HasElement("area"))
-      {
-        double area = linkElem->GetElement("area")->Get<double>();
-        if (area <= 0)
-        {
-          gzwarn << "Nonpositive area specified in BuoyancyPlugin!"
-                 << std::endl;
-          // Remove the element from the map since it's invalid.
-          this->volPropsMap.erase(id);
-          continue;
-        }
-        this->volPropsMap[id].area = area;
-      }
-      else
-      {
-        gzwarn << "Required element 'area' missing from element link [" << name
-               << "] in BuoyancyPlugin SDF" << std::endl;
-        continue;
-      }
-
-      if (linkElem->HasElement("height"))
-      {
-        double height = linkElem->GetElement("height")->Get<double>();
-        if (height <= 0)
-        {
-          gzwarn << "Nonpositive height specified in BuoyancyPlugin!"
-                 << std::endl;
-          // Remove the element from the map since it's invalid.
-          this->volPropsMap.erase(id);
-          continue;
-        }
-        this->volPropsMap[id].height = height;
-      }
-      else
-      {
-        gzwarn << "Required element 'height' missing from element link ["
-               << name << "] in BuoyancyPlugin SDF" << std::endl;
-        continue;
+        gzwarn << e.what() << std::endl;
       }
     }
   }
@@ -162,71 +178,55 @@ void BuoyancyPlugin::Init()
 /////////////////////////////////////////////////
 void BuoyancyPlugin::OnUpdate()
 {
-  for (auto &link : this->buoyancyLinks)
+  for (auto& buoyancyObj : this->buoyancyObjects)
   {
-    VolumeProperties volumeProperties = this->volPropsMap[link->GetId()];
-    double height = volumeProperties.height;
-    double area = volumeProperties.area;
-    double volume = height * area;
+    auto link = linkMap[buoyancyObj.linkId];
     #if GAZEBO_MAJOR_VERSION >= 8
-      ignition::math::Pose3d linkFrame = link->WorldPose();
+        ignition::math::Pose3d linkFrame = link->WorldPose();
     #else
-      ignition::math::Pose3d linkFrame = link->GetWorldPose().Ign();
+        ignition::math::Pose3d linkFrame = link->GetWorldPose().Ign();
     #endif
+    linkFrame = linkFrame * buoyancyObj.pose;
 
-    // Location of bottom of object relative to the fluid surface - assumes
-    // origin is at cog of the object.
-    double bottomRelSurf =
-      this->fluidLevel - (linkFrame.Pos().Z() - height / 2.0);
+    auto volume = buoyancyObj.shape->calculateVolume(linkFrame, this->fluidLevel);
 
-    // out of water
-    if (bottomRelSurf <= 0)
-    {
-      volume = 0.0;
-    }
-    // at surface
-    else if (bottomRelSurf <= height)
-    {
-      volume = bottomRelSurf * area;
-    }
-    else
-    {
-      volume = height * area;
-    }
-
-    GZ_ASSERT(volume >= 0, "Nonpositive volume found in volume properties!");
+    GZ_ASSERT(volume.volume >= 0, "Non-positive volume found in volume properties!");
 
     // By Archimedes' principle,
     // buoyancy = -(mass*gravity)*fluid_density/object_density
     // object_density = mass/volume, so the mass term cancels.
-    // Therefore,
-    //    math::Vector3 buoyancy =
-    //    -this->fluidDensity * volume * this->model->GetWorld()->Gravity();
-    const ignition::math::Vector3d kGravity(0, 0, -9.81);
-    ignition::math::Vector3d buoyancy = -this->fluidDensity * volume * kGravity;
+    ignition::math::Vector3d buoyancy = -this->fluidDensity * volume.volume * model->GetWorld()->Gravity();
 
-    // Add some drag
-    if (volume > 1e-6)
+    // apply buoyancy and drag forces
+    if (volume.volume > 1e-6)
     {
       #if GAZEBO_MAJOR_VERSION >= 8
-        ignition::math::Vector3d vel = link->WorldLinearVel();
+            ignition::math::Vector3d linVel = link->WorldLinearVel();
+            ignition::math::Vector3d angVel = link->RelativeAngularVel();
       #else
-        ignition::math::Vector3d vel= link->GetWorldLinearVel().Ign();
+            ignition::math::Vector3d linVel= link->GetWorldLinearVel().Ign();
+            ignition::math::Vector3d angVel = link->RelativeAngularVel().Ign();
       #endif
-      double dz = -1.0 * this->fluidDrag * vel.Z() * std::abs(vel.Z());
-      ignition::math::Vector3d drag(0, 0, dz);
-      buoyancy += drag;
+
+      // partial mass = total_mass * submerged_vol / total_vol
+      float partialMass = 2 * volume.volume / buoyancyObj.shape->volume;
+
+      // drag (based on Exact Buoyancy for Polyhedra by Eric Catto)
+      // linear drag
+      ignition::math::Vector3d dragForce = linearDrag * partialMass * -linVel;
+      buoyancy += dragForce;
       if (buoyancy.Z() < 0.0)
       {
         buoyancy.Z() = 0.0;
       }
+      // apply force
+      link->AddForceAtWorldPosition(buoyancy, volume.centroid);
+
+      // drag torque
+      double averageLength2 = ::pow(buoyancyObj.shape->averageLength, 2);
+      ignition::math::Vector3d dragTorque = (-partialMass * angularDrag * averageLength2) * angVel;
+      link->AddRelativeTorque(dragTorque);
     }
-
-    // rotate buoyancy into the link frame before applying the force.
-    ignition::math::Vector3d buoyancyLinkFrame =
-      linkFrame.Rot().Inverse().RotateVector(buoyancy);
-
-    link->AddForceAtRelativePosition(buoyancy, volumeProperties.cov);
   }
 }
 
