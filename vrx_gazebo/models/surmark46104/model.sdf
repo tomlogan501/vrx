@@ -2,12 +2,8 @@
 <sdf version="1.6">
   <model name="surmark46104">
     <link name="link">
-      <velocity_decay>
-        <linear>0.001</linear>
-        <angular>0.001</angular>
-      </velocity_decay>
       <inertial>
-        <pose>0 0 -10 0 0 0</pose>
+        <pose>0 0 -2 0 0 0</pose>
         <mass>17.2365</mass>
         <inertia>
           <ixx>2.5137</ixx>
@@ -36,8 +32,8 @@
           </cylinder>
         </geometry>
       </collision>
+
       <visual name="visual">
-				<pose>0 0 -0.35 0 0 0 </pose>
         <geometry>
 	        <mesh><uri>model://surmark46104/mesh/surmark46104.dae</uri></mesh>
         </geometry>
@@ -49,17 +45,43 @@
         </material>
       </visual>
     </link>
+
     <plugin name="BuoyancyPlugin" filename="libbuoyancy_gazebo_plugin.so">
       <wave_model>ocean_waves</wave_model>
       <fluid_density>1000</fluid_density>
-      <fluid_level>0</fluid_level>
-      <fluid_drag>0</fluid_drag>
-      <link name="link">
-        <name>link</name>
-        <center_of_volume>0 0 0.5</center_of_volume>
-        <area>0.63</area>
-        <height>1.0</height>
-      </link>
+      <fluid_level>0.0</fluid_level>
+      <linear_drag>25.0</linear_drag>
+      <angular_drag>2.0</angular_drag>
+      <buoyancy name="buoyancy_inner_top">
+        <link_name>link</link_name>
+        <pose>0 0 0.5 0 0 0</pose>
+        <geometry>
+          <cylinder>
+            <radius>0.13</radius>
+            <length>0.98</length>
+          </cylinder>
+        </geometry>
+      </buoyancy>
+      <buoyancy name="buoyancy_inner_bottom">
+        <link_name>link</link_name>
+        <pose>0 0 -0.21 0 0 0</pose>
+        <geometry>
+          <cylinder>
+            <radius>0.13</radius>
+            <length>0.09</length>
+          </cylinder>
+        </geometry>
+      </buoyancy>
+      <buoyancy name="buoyancy_outer">
+        <link_name>link</link_name>
+        <pose>0 0 -0.08 0 0 0</pose>
+        <geometry>
+          <cylinder>
+            <radius>0.23</radius>
+            <length>0.16</length>
+          </cylinder>
+        </geometry>
+      </buoyancy>
     </plugin>
   </model>
 </sdf>
