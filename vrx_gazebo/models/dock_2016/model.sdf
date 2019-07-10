@@ -68,6 +68,13 @@
           <transparency>1</transparency>
         </visual>
       </link>
+      
+      <joint name="placard_to_visual" type="fixed">
+        <pose> 0 0 0 0 0 0 </pose>
+        <parent>placard::link</parent>    
+        <child>link_symbols</child>
+      </joint>
+
     </model>
     
     
@@ -130,6 +137,13 @@
           <transparency>1</transparency>
         </visual>
       </link>
+      
+      <joint name="placard_to_visual" type="fixed">
+        <pose> 0 0 0 0 0 0 </pose>
+        <parent>placard::link</parent>    
+        <child>link_symbols</child>
+      </joint>
+
     </model>
     
     
@@ -192,8 +206,30 @@
           <transparency>1</transparency>
         </visual>
       </link>
+      
+      <joint name="placard_to_visual" type="fixed">
+        <pose> 0 0 0 0 0 0 </pose>
+        <parent>placard::link</parent>    
+        <child>link_symbols</child>
+      </joint>
+
     </model>
     
     
+    <joint name = "joint_placard1" type="fixed">
+      <pose>0 0 3 0 0 0 </pose>
+      <parent>dock_2016_placard1::placard::link</parent>
+      <child>robotx_dock_2016_base::dock_block_2_1::link</child>
+    </joint>
+    <joint name = "joint_placard2" type="fixed">
+      <pose>0 0 3 0 0 0 </pose>
+      <parent>dock_2016_placard2::placard::link</parent>
+      <child>robotx_dock_2016_base::dock_block_2_3::link</child>
+    </joint>
+    <joint name = "joint_placard3" type="fixed">
+      <pose>0 0 3 0 0 0 </pose>
+      <parent>dock_2016_placard3::placard::link</parent>
+      <child>robotx_dock_2016_base::dock_block_2_5::link</child>
+    </joint>
   </model>
 </sdf>
